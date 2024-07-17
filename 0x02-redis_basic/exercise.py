@@ -34,9 +34,11 @@ def call_history(method: Callable) -> Callable:
         input_key = f"{method.__qualname__}:inputs"
         output_key = f"{method.__qualname__}:ouputs"
 
-        self._redis.rpush(input_key, str(args))
+        if isinstance(self._redis, redis.Redis):
+            self._redis.rpush(input_key, str(args))
         result = method(self, *args, **kwargs)
-        self._redis.rpush(output_key, str(result))
+        if isinstance(self._redis, redis.Redis):
+            self._redis.rpush(output_key, result)
 
         return result
     return wrapper

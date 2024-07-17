@@ -2,7 +2,7 @@
 """
      Writing Strings to Redis
 """
-from typing import Union, Callable, Optional
+from typing import Union, Callable, Optional, Any
 import redis
 import uuid
 import functools
@@ -27,12 +27,12 @@ def call_history(method: Callable) -> Callable:
         Tracks the call details of a method in cache class
     """
     @functools.wraps(method)
-    def wrapper(self, *args, **kwargs):
+    def wrapper(self, *args, **kwargs) -> Any:
         """
             Returns the methods output after storing ite inputs and outputs
         """
         input_key = f"{method.__qualname__}:inputs"
-        output_key = f"{method.__qualname__}:ouputs"
+        output_key = f"{method.__qualname__}:outputs"
 
         if isinstance(self._redis, redis.Redis):
             self._redis.rpush(input_key, str(args))
@@ -42,6 +42,31 @@ def call_history(method: Callable) -> Callable:
 
         return result
     return wrapper
+
+def replay(fn: Callable) -> None:
+    '''
+    this displays the call history of a Cache class' method.
+    '''
+    if fn is None or not hasattr(fn, '__self__'):
+        return
+    redis_store = getattr(fn.__self__, '_redis', None)
+    if not isinstance(redis_store, redis.Redis):
+        return
+    fxn_name = fn.__qualname__
+    in_key = '{}:inputs'.format(fxn_name)
+    out_key = '{}:outputs'.format(fxn_name)
+    fxn_call_count = 0
+    if redis_store.exists(fxn_name) != 0:
+        fxn_call_count = int(redis_store.get(fxn_name))
+    print('{} was called {} times:'.format(fxn_name, fxn_call_count))
+    fxn_inputs = redis_store.lrange(in_key, 0, -1)
+    fxn_outputs = redis_store.lrange(out_key, 0, -1)
+    for fxn_input, fxn_output in zip(fxn_inputs, fxn_outputs):
+        print('{}(*{}) -> {}'.format(
+            fxn_name,
+            fxn_input.decode("utf-8"),
+            fxn_output,
+        ))
 
 
 class Cache:

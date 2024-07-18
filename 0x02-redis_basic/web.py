@@ -5,44 +5,33 @@
 import requests
 import redis
 from typing import Callable
+import functools
+
 
 redis = redis.Redis()
 
 
-def count_url(method: Callable) -> Callable:
-    """
-        Counts the number of times a url was accessed
-    """
-    def wrapper(url: str) -> str:
-        """
-            Counts
-        """
-        count_key = f"count:{url}"
-        redis.incr(count_key)
-        return method(url)
-    return wrapper
-
-
-def cache(expire: int = 10) -> Callable:
+def cache(method: Callable) -> Callable:
     """
         Caches the result of the get_page
     """
-    def decorator(method: Callable) -> Callable:
-        def wrapper(url: str) -> str:
-            cache_key = f"cache:{url}"
-            cache_content = redis.get(cache_key)
-            if cache_content:
-                return cache_content.decode('utf-8')
-            res = method(url)
-            if res is not None:
-                redis.setex(cache_key, expire, res)
-            return res
-        return wrapper
+    @functools.wraps(method)
+    def decorator(url: str) -> str:
+        """
+            Wrapper for caching
+        """
+        redis.incr(f'count:{url}')
+        res = redis.get(f'res:{url')
+        if res:
+            return res.decode('utf-8')
+        res = method(url)
+        redis.set(f'count:{url}', 0)
+        redis.setex(f'res:{url}', 10, res)
+        return res
     return decorator
 
 
-@count_url
-@cache(expire=10)
+@cache
 def get_page(url: str) -> str:
     """
         Returns the content of a particular url using the requests lib

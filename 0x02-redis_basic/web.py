@@ -49,17 +49,7 @@ def get_page(url: str) -> str:
     """
     try:
         response = requests.get(url)
-        if response.status == 200:
-            return response.text
-        else:
-            raise_for_status()
+        raise_for_status()
+        return response.text
     except Exception as e:
         print(e)
-
-
-if __name__ == "__main__":
-    url = "http://slowwly.robertomurray.co.uk/delay/5000/url/ \
-           https://www.example.com"
-    print(get_page(url))
-    print(get_page(url))
-    print(redis.get(f"count:{url}"))

@@ -8,5 +8,5 @@ def insert_school(mongo_collection, **kwargs):
     """
         returns id of inserteted objects
     """
-    res = mongo_collection.insert_one(kwargs)
-    return result.inserted_id
+    res = mongo_collection.insert_many(kwargs)
+    return result.inserted_ids

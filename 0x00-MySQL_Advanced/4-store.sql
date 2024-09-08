@@ -1,13 +1,15 @@
 -- Creates a trigger effect that decreases quantity of an itmem after adding a new order
-
-DROP TRIGGER IF EXISTS reduce_qnty;
-DELIMETER //
-CREATE TRIGGER reduce_qnty
+DELIMITER $$
+CREATE TRIGGER update_items
 AFTER INSERT ON orders
 FOR EACH ROW
-	BEGIN
-		UPDATE items
-		SET quantity = quantity - NEW.number
-		WHERE name = NEW.item_name;
-	END //
-DELIMETER ;
+BEGIN
+    DECLARE diff INT;
+    DECLARE old_quantity INT;
+    SELECT quantity FROM items WHERE name = NEW.item_name INTO old_quantity;
+    SET diff = old_quantity - NEW.number;
+    UPDATE items
+    SET quantity = diff
+    WHERE name = NEW.item_name;
+END$$
+DELIMITER ;
